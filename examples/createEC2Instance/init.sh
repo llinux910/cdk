@@ -2,12 +2,38 @@
 
 
 aws configure
-aws sts get-caller-identity --query Account --output text && cdk bootstrap aws://$(aws sts get-caller-identity --query Account --output text)/$(aws configure get region)
+
+STACK_NAME="CDKToolkit"
+
+# Check if CDK Toolkit stack exists
+aws cloudformation describe-stacks --stack-name $STACK_NAME >/dev/null 2>&1
+if [ $? -eq 0 ]; then
+  echo "CDK Toolkit stack ($STACK_NAME) already exists."
+else
+  echo "CDK Toolkit stack ($STACK_NAME) does not exist. Bootstrapping CDK Toolkit..."
+
+  # Get AWS account ID and region
+  AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+  AWS_REGION=$(aws configure get region)
+
+  # Bootstrap CDK Toolkit
+  cdk bootstrap aws://$AWS_ACCOUNT_ID/$AWS_REGION
+
+  if [ $? -eq 0 ]; then
+    echo "CDK Toolkit bootstrapping completed successfully."
+  else
+    echo "CDK Toolkit bootstrapping failed."
+    exit 1
+  fi
+fi
+
+mkdir cdk
+cd cdk
+cdk init --language typescript
 
 
-aws s3 rb "s3://$(aws cloudformation describe-stack-resources --stack-name CDKToolkit --query "StackResources[?ResourceType=='AWS::S3::Bucket'].PhysicalResourceId" --output text)" --force
 
-# CDKToolkit 스택을 삭제합니다.
-aws cloudformation delete-stack --stack-name CDKToolkit --region $(aws configure get region)
-aws cloudformation describe-stacks --stack-name CDKToolkit --region $(aws configure get region)
+
+
+
 
