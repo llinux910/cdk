@@ -1,7 +1,8 @@
-
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as ssm from "aws-cdk-lib/aws-ssm";
+
 import { Construct } from "constructs";
 
 export class Ec2CdkStack extends cdk.Stack {
@@ -47,13 +48,46 @@ export class Ec2CdkStack extends cdk.Stack {
       role: role
     });
 
+    const maintenanceWindow = new ssm.CfnMaintenanceWindow(this, 'MaintenanceWindow', {
+      allowUnassociatedTargets: false,
+      cutoff: 1,
+      duration: 2,
+      name: this.stackName,
+      schedule: 'cron(0 5 ? * SUN *)',
+      scheduleTimezone: 'UTC',
+    });
 
-    const eip = new ec2.CfnEIP(this, 'MyEIP');
+    const maintenanceWindowTarget = new ssm.CfnMaintenanceWindowTarget(this, 'MaintenanceWindowTarget', {
+      resourceType: 'INSTANCE',
+      targets: [
+        {
+          key: 'InstanceIds',
+          values: [ec2Instance.instanceId],
+        },
+      ],
+      windowId: maintenanceWindow.ref,
+    });
 
-    // Associate the Elastic IP with the EC2 instance
-    const eipAssociation = new ec2.CfnEIPAssociation(this, 'MyEIPAssociation', {
-      eip: eip.ref,
-      instanceId: ec2Instance.instanceId,
+    const maintenanceWindowTask = new ssm.CfnMaintenanceWindowTask(this, 'MaintenanceWindowTask', {
+      maxConcurrency: '1',
+      maxErrors: '1',
+      priority: 0,
+      targets: [
+        {
+          key: 'WindowTargetIds',
+          values: [maintenanceWindowTarget.ref],
+        },
+      ],
+      taskArn: 'AWS-RunPatchBaseline',
+      taskInvocationParameters: {
+        maintenanceWindowRunCommandParameters: {
+          parameters: {
+            Operation: ['Install'],
+          },
+        },
+      },
+      taskType: 'RUN_COMMAND',
+      windowId: maintenanceWindow.ref,
     });
 
     // Create outputs for connecting
@@ -61,5 +95,4 @@ export class Ec2CdkStack extends cdk.Stack {
     new cdk.CfnOutput(this, "Session Manager Session", { value: ec2Instance.instanceId });
   }
 }
-
 
