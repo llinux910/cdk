@@ -4,17 +4,12 @@
 
 사전설치
 
-node
-
-cdk
-
-aws cli
-
+node,cdk,aws cli
+```bash
 sudo dnf install -y nodejs
-
 sudo dnf install -y awscli
-
 sudo npm install -g aws-cdk
+```
 
 
 
