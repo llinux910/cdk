@@ -32,7 +32,6 @@ cd cdk
 cdk init --language typescript
 cd ..
 
-pwd
 
 mkdir -p cdk/src
 

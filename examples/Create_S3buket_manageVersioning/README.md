@@ -1,48 +1,14 @@
+11
+
+In April 2023 AWS must have changed bucket defaults, 
+a fix for AWS CDK projects would be adding blockPublicAccess together with accessControl props as follows:
+
 ```typescript
-const maintenanceWindow = new CfnMaintenanceWindow(this, 'MaintenanceWindow', {
-  allowUnassociatedTargets: false,
-  cutoff: 1,
-  duration: 2,
-  name: this.stackName,
-  schedule: 'cron(0 5 ? * SUN *)',
-  scheduleTimezone: 'UTC',
-});
+import { BlockPublicAccess, BucketAccessControl } from "aws-cdk-lib/aws-s3"; ....
 
-const maintenanceWindowTarget = new CfnMaintenanceWindowTarget(this, 'MaintenanceWindowTarget', {
-  resourceType: 'INSTANCE',
-  targets: [
-    {
-      key: 'InstanceIds',
-      values: [instance.instanceId],
-    },
-  ],
-  windowId: maintenanceWindow.ref,
-});
-
-const maintenanceWindowTask = new CfnMaintenanceWindowTask(this, 'MaintenanceWindowTask', {
-  maxConcurrency: '1',
-  maxErrors: '1',
-  priority: 0,
-  targets: [
-    {
-      key: 'WindowTargetIds',
-      values: [maintenanceWindowTarget.ref],
-    },
-  ],
-  taskArn: 'AWS-RunPatchBaseline',
-  taskInvocationParameters: {
-    maintenanceWindowRunCommandParameters: {
-      parameters: {
-        Operation: ['Install'],
-      },
-    },
-  },
-  taskType: 'RUN_COMMAND',
-  windowId: maintenanceWindow.ref,
-});
-
-
-
+// Content bucket
+const bucket = new s3.Bucket(this, "Bucket", {
+  blockPublicAccess: BlockPublicAccess.BLOCK_ACLS,
+  accessControl: BucketAccessControl.BUCKET_OWNER_FULL_CONTROL,
 
 ```
-
