@@ -2,7 +2,7 @@
 
 동작확인환경: Fedora 38
 
-사전설치
+사전설치/
 
 node,cdk,aws cli
 ```bash
